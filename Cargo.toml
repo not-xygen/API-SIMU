@@ -1,0 +1,16 @@
+[package]
+name = "api-simu"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.7.5"
+bcrypt = "0.15.1"
+chrono = { version = "0.4.38", features = ["serde"] }
+dotenv = "0.15.0"
+serde = { version = "1.0.201", features = ["derive"] }
+serde_json = "1.0.117"
+sqlx = { version = "0.7.4", features = ["runtime-async-std-native-tls", "mysql", "chrono", "uuid"] }
+sqlx-cli = "0.7.4"
+tokio = { version = "1.37.0", features = ["full"] }
+tower-http = { version = "0.5.2", features = ["cors"] }
