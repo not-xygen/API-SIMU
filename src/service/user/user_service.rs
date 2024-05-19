@@ -4,7 +4,8 @@ use axum::{extract::State, Json};
 
 use crate::{
     model::{model::UserModel, schema::CreateUpdateUserSchema},
-    AppState,
+    service::user::user_validator::{create_validation, update_validation},
+    utils::singleton::AppState
 };
 
 pub async fn get_all_user_service(
@@ -39,7 +40,9 @@ pub async fn create_user_service(
     State(data): State<Arc<AppState>>,
     Json(body): Json<CreateUpdateUserSchema>,
 ) -> Result<sqlx::mysql::MySqlQueryResult, String> {
-    // Insert
+
+    create_validation(data.clone(), &body).await?;
+
     let password = bcrypt::hash(body.password.to_string(), 10).unwrap();
     let res =
         sqlx::query(r#"INSERT INTO users (username, email, phone, password ) VALUES (?, ?, ?, ?)"#)
@@ -69,8 +72,8 @@ pub async fn update_user_service(
         return Err(format!("User with id {} does not exist", id));
     }
 
+    update_validation(data.clone(), &body).await?;
 
-    // Update
     let password = bcrypt::hash(body.password.to_string(), 10).unwrap();
     let res = sqlx::query(
         r#"UPDATE users SET username = ?, email = ?, phone = ?, password = ? WHERE id = ?"#,

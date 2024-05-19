@@ -1,59 +1,23 @@
-use sqlx::mysql::{MySqlPoolOptions, MySqlPool};
+use std::sync::Arc;
 
-// lazy_static! {
-//     static ref DATABASE_POOL: Mutex<Option<MySqlPool>> = Mutex::new(None);
-//     static ref INIT: Once = Once::new();
-// }
+use crate::utils::{adapter::connection, observer::{LoggerObserver, Observable}};
+use sqlx::mysql::MySqlPool;
 
-// pub async fn get_database_pool() -> &'static Mutex<Option<MySqlPool>> {
-//     INIT.call_once(|| {
-//         let _ = dotenv::dotenv();
-//     });
-
-//     let mut pool = DATABASE_POOL.lock().unwrap();
-
-//     if pool.is_none() {
-//         let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-//         let new_pool = match MySqlPool::connect(&database_url).await {
-//             Ok(pool) => {
-//                 println!("✅ Connection to the database is successful!");
-//                 pool
-//             }
-//             Err(err) => {
-//                 println!("❌ Failed to connect to the database: {:?}", err);
-//                 std::process::exit(1);
-//             }
-//         };
-//         *pool = Some(new_pool);
-//     }
-
-//     &*DATABASE_POOL
-// }
-
-pub async fn get_database_pool() -> Result<MySqlPool, sqlx::Error> {
-    dotenv::dotenv().ok();
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must set");
-    let pool = match MySqlPoolOptions::new()
-        .max_connections(10)
-        .connect(&database_url)
-        .await
-    {
-        Ok(pool) => {
-            println!("✅ Connection to the database is successful!");
-            pool
-        }
-        Err(err) => {
-            println!("❌ Failed to connect to the database: {:?}", err);
-            std::process::exit(1);
-        }
-    };
-
-    Ok(pool)
+pub struct AppState {
+    pub db: MySqlPool,
+    pub observable: Observable,
 }
 
+pub async fn get_app_state() -> Result<Arc<AppState>, sqlx::Error> {
+    let observable = Observable::new();
+    let logger_observer = Arc::new(LoggerObserver);
+    observable.add_observer(logger_observer.clone());
 
-// test
-// #[test]
-// fn test_get_database_pool_test() {
-//     get_database_pool();
-// }
+    let pool = connection().await.unwrap();
+
+    let app_state = Arc::new(AppState {
+        db: pool,
+        observable,
+    });
+    Ok(app_state)
+}

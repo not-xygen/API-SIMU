@@ -10,7 +10,7 @@ use crate::{
             update_user_controller,delete_user_by_id_controller
         },
     },
-    AppState,
+    utils::singleton::AppState,
 };
 
 pub fn create_router(app_state: Arc<AppState>) -> Router {
