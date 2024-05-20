@@ -6,13 +6,16 @@ use crate::{
     },
 };
 use std::sync::Arc;
+use tokio::sync::OnceCell;
 
-const  APP_STATE:Arc<AppState> = get_app_state().unwrap();
+static APP_STATE: OnceCell<Arc<AppState>> = OnceCell::const_new();
 
-pub async fn create_validation(
-    app_state: Arc<AppState>,
-    body: &CreateUpdateUserSchema,
-) -> Result<(), String> {
+async fn init_app_state() -> Arc<AppState> {
+    get_app_state().await.unwrap()
+}
+
+pub async fn create_validation(body: &CreateUpdateUserSchema) -> Result<(), String> {
+    let app_state = APP_STATE.get_or_init(init_app_state).await.clone();
     let mut validation = ValidationChain::new(app_state);
 
     validation.add_rule("username", "required", None);
@@ -47,10 +50,8 @@ pub async fn create_validation(
     Ok(())
 }
 
-pub async fn update_validation(
-    app_state: Arc<AppState>,
-    body: &CreateUpdateUserSchema,
-) -> Result<(), String> {
+pub async fn update_validation(body: &CreateUpdateUserSchema) -> Result<(), String> {
+    let app_state = APP_STATE.get_or_init(init_app_state).await.clone();
     let mut validation = ValidationChain::new(app_state);
 
     validation.add_rule("username", "required", None);

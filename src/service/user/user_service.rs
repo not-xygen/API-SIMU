@@ -40,7 +40,7 @@ pub async fn create_user_service(
     State(data): State<Arc<AppState>>,
     Json(body): Json<CreateUpdateUserSchema>,
 ) -> Result<sqlx::mysql::MySqlQueryResult, String> {
-    create_validation(data.clone(), &body).await?;
+    create_validation(&body).await?;
 
     let password = bcrypt::hash(body.password.to_string(), 10).unwrap();
     let res =
@@ -71,7 +71,7 @@ pub async fn update_user_service(
         return Err(format!("User with id {} does not exist", id));
     }
 
-    update_validation(data.clone(), &body).await?;
+    update_validation(&body).await?;
 
     let password = bcrypt::hash(body.password.to_string(), 10).unwrap();
     let res = sqlx::query(
