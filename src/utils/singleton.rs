@@ -8,6 +8,10 @@ pub struct AppState {
     pub observable: Observable,
 }
 
+pub async fn init_app_state() -> Arc<AppState> {
+    get_app_state().await.unwrap()
+}
+
 pub async fn get_app_state() -> Result<Arc<AppState>, sqlx::Error> {
     let observable = Observable::new();
     let logger_observer = Arc::new(LoggerObserver);
