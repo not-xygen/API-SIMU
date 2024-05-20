@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use crate::utils::{adapter::connection, observer::{LoggerObserver, Observable}};
+use crate::utils::{
+    adapter::connection,
+    observer::{LoggerObserver, Observable},
+};
 use sqlx::mysql::MySqlPool;
 
 pub struct AppState {
@@ -19,5 +22,12 @@ pub async fn get_app_state() -> Result<Arc<AppState>, sqlx::Error> {
         db: pool,
         observable,
     });
-    Ok(app_state)
+
+    static mut APP_STATE: Option<Arc<AppState>> = None;
+    unsafe {
+        if APP_STATE.is_none() {
+            APP_STATE = Some(app_state.clone());
+        }
+        Ok(APP_STATE.as_ref().unwrap().clone())
+    }
 }

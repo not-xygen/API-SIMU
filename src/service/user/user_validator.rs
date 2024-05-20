@@ -1,8 +1,13 @@
 use crate::{
     model::schema::CreateUpdateUserSchema,
-    utils::{singleton::AppState, validation_chain::ValidationChain},
+    utils::{
+        singleton::{get_app_state, AppState},
+        validation_chain::ValidationChain,
+    },
 };
 use std::sync::Arc;
+
+const  APP_STATE:Arc<AppState> = get_app_state().unwrap();
 
 pub async fn create_validation(
     app_state: Arc<AppState>,

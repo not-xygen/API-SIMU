@@ -5,7 +5,7 @@ use axum::{extract::State, Json};
 use crate::{
     model::{model::UserModel, schema::CreateUpdateUserSchema},
     service::user::user_validator::{create_validation, update_validation},
-    utils::singleton::AppState
+    utils::singleton::AppState,
 };
 
 pub async fn get_all_user_service(
@@ -40,7 +40,6 @@ pub async fn create_user_service(
     State(data): State<Arc<AppState>>,
     Json(body): Json<CreateUpdateUserSchema>,
 ) -> Result<sqlx::mysql::MySqlQueryResult, String> {
-
     create_validation(data.clone(), &body).await?;
 
     let password = bcrypt::hash(body.password.to_string(), 10).unwrap();
