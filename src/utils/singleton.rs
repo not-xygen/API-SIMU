@@ -11,6 +11,10 @@ pub struct AppState {
     pub observable: Observable,
 }
 
+pub async fn init_app_state() -> Arc<AppState> {
+    get_app_state().await.unwrap()
+}
+
 pub async fn get_app_state() -> Result<Arc<AppState>, sqlx::Error> {
     let observable = Observable::new();
     let logger_observer = Arc::new(LoggerObserver);
@@ -22,12 +26,5 @@ pub async fn get_app_state() -> Result<Arc<AppState>, sqlx::Error> {
         db: pool,
         observable,
     });
-
-    static mut APP_STATE: Option<Arc<AppState>> = None;
-    unsafe {
-        if APP_STATE.is_none() {
-            APP_STATE = Some(app_state.clone());
-        }
-        Ok(APP_STATE.as_ref().unwrap().clone())
-    }
+    Ok(app_state)
 }
