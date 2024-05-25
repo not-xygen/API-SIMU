@@ -1,14 +1,16 @@
 use std::sync::Arc;
-
+use sqlx::mysql::MySqlPool;
 use crate::utils::{
     adapter::connection,
+    factory::new_mysql_query_builder,
     observer::{LoggerObserver, Observable},
+    factory::QueryBuilder,
 };
-use sqlx::mysql::MySqlPool;
 
 pub struct AppState {
     pub db: MySqlPool,
     pub observable: Observable,
+    pub query_builder: Arc<dyn QueryBuilder>,
 }
 
 pub async fn init_app_state() -> Arc<AppState> {
@@ -25,6 +27,7 @@ pub async fn get_app_state() -> Result<Arc<AppState>, sqlx::Error> {
     let app_state = Arc::new(AppState {
         db: pool,
         observable,
+        query_builder: new_mysql_query_builder(), 
     });
     Ok(app_state)
 }

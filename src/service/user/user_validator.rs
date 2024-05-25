@@ -20,7 +20,7 @@ pub async fn create_validation(body: &CreateUpdateUserSchema) -> Result<(), Stri
         ("phone", body.phone.as_str()),
     ];
 
-    let mut validation_chain = ValidationChain::new(app_state); // Tambahkan 'mut' di sini
+    let mut validation_chain = ValidationChain::new(app_state); // Add 'mut' here
     validation_chain
         .add_rule("username", "required", None)
         .add_rule("username", "min_length", Some("3"))
@@ -52,7 +52,7 @@ pub async fn update_validation(body: &CreateUpdateUserSchema) -> Result<(), Stri
         ("phone", body.phone.as_str()),
     ];
 
-    let mut validation_chain = ValidationChain::new(app_state); // Tambahkan 'mut' di sini
+    let mut validation_chain = ValidationChain::new(app_state); // Add 'mut' here
     validation_chain
         .add_rule("username", "required", None)
         .add_rule("username", "min_length", Some("3"))

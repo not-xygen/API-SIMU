@@ -1,7 +1,5 @@
 use std::sync::Arc;
-
 use axum::{extract::State, Json};
-
 use crate::{
     model::{model::UserModel, schema::CreateUpdateUserSchema},
     service::user::user_validator::{create_validation, update_validation},
@@ -11,7 +9,8 @@ use crate::{
 pub async fn get_all_user_service(
     State(data): State<Arc<AppState>>,
 ) -> Result<Vec<UserModel>, String> {
-    let res = sqlx::query_as::<_, UserModel>(r#"SELECT * FROM users ORDER by id"#)
+    let query = data.query_builder.select_all("users");
+    let res = sqlx::query_as::<_, UserModel>(&query)
         .fetch_all(&data.db)
         .await
         .map_err(|err: sqlx::Error| err.to_string());
@@ -23,8 +22,8 @@ pub async fn get_user_by_id_service(
     State(data): State<Arc<AppState>>,
     id: i32,
 ) -> Result<UserModel, String> {
-    let res = sqlx::query_as::<_, UserModel>(r#"SELECT * FROM users WHERE id = ?"#)
-        .bind(id)
+    let query = data.query_builder.select_by_id("users", id as u64);
+    let res = sqlx::query_as::<_, UserModel>(&query)
         .fetch_one(&data.db)
         .await
         .map_err(|err: sqlx::Error| err.to_string());
@@ -44,15 +43,15 @@ pub async fn create_user_service(
     create_validation(&body).await?;
 
     let password = bcrypt::hash(body.password.to_string(), 10).unwrap();
-    let res =
-        sqlx::query(r#"INSERT INTO users (username, email, phone, password ) VALUES (?, ?, ?, ?)"#)
-            .bind(body.username.to_string())
-            .bind(body.email.to_string())
-            .bind(body.phone.to_string())
-            .bind(password.to_string())
-            .execute(&data.db)
-            .await
-            .map_err(|err: sqlx::Error| err.to_string());
+    let query = data.query_builder.insert(
+        "users",
+        &["username", "email", "phone", "password"],
+        &[&body.username, &body.email, &body.phone, &password],
+    );
+    let res = sqlx::query(&query)
+        .execute(&data.db)
+        .await
+        .map_err(|err: sqlx::Error| err.to_string());
 
     res
 }
@@ -62,30 +61,33 @@ pub async fn update_user_service(
     id: i32,
     Json(body): Json<CreateUpdateUserSchema>,
 ) -> Result<sqlx::mysql::MySqlQueryResult, String> {
-    let check_user = sqlx::query_as::<_, UserModel>(r#"SELECT * FROM users WHERE id = ?"#)
-        .bind(id)
+    let check_user_query = data.query_builder.select_by_id("users", id as u64);
+    let user_exists = sqlx::query_as::<_, UserModel>(&check_user_query)
         .fetch_optional(&data.db)
         .await
         .map_err(|err: sqlx::Error| err.to_string())?;
 
-    if check_user.is_none() {
+    if user_exists.is_none() {
         return Err(format!("User with id {} does not exist", id));
     }
 
     update_validation(&body).await?;
 
     let password = bcrypt::hash(body.password.to_string(), 10).unwrap();
-    let res = sqlx::query(
-        r#"UPDATE users SET username = ?, email = ?, phone = ?, password = ? WHERE id = ?"#,
-    )
-    .bind(body.username.to_string())
-    .bind(body.email.to_string())
-    .bind(body.phone.to_string())
-    .bind(password.to_string())
-    .bind(id)
-    .execute(&data.db)
-    .await
-    .map_err(|err: sqlx::Error| err.to_string());
+    let query = data.query_builder.update(
+        "users",
+        id as u64,
+        &[
+            ("username", &body.username),
+            ("email", &body.email),
+            ("phone", &body.phone),
+            ("password", &password),
+        ],
+    );
+    let res = sqlx::query(&query)
+        .execute(&data.db)
+        .await
+        .map_err(|err: sqlx::Error| err.to_string());
 
     res
 }
@@ -94,18 +96,18 @@ pub async fn delete_user_by_id_service(
     State(data): State<Arc<AppState>>,
     id: i32,
 ) -> Result<sqlx::mysql::MySqlQueryResult, String> {
-    let check_user = sqlx::query_as::<_, UserModel>(r#"SELECT * FROM users WHERE id = ?"#)
-        .bind(id)
+    let check_user_query = data.query_builder.select_by_id("users", id as u64);
+    let user_exists = sqlx::query_as::<_, UserModel>(&check_user_query)
         .fetch_optional(&data.db)
         .await
         .map_err(|err: sqlx::Error| err.to_string())?;
 
-    if check_user.is_none() {
+    if user_exists.is_none() {
         return Err(format!("User with id {} does not exist", id));
     }
 
-    let res = sqlx::query(r#"DELETE FROM users WHERE id = ?"#)
-        .bind(id)
+    let query = data.query_builder.delete("users", id as u64);
+    let res = sqlx::query(&query)
         .execute(&data.db)
         .await
         .map_err(|err: sqlx::Error| err.to_string());
