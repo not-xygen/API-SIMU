@@ -4,6 +4,7 @@ use axum::{
     Json,
 };
 use std::sync::Arc;
+use tokio::sync::OnceCell;
 
 use crate::{
     model::schema::{CreateUpdateUserSchema, FilterOptions},
@@ -11,19 +12,20 @@ use crate::{
         create_user_service, delete_user_by_id_service, get_all_user_service,
         get_user_by_id_service, update_user_service,
     },
-    utils::singleton::AppState,
+    utils::singleton::{init_app_state, AppState},
 };
 
-pub async fn get_all_user_controller(
-    opts: Option<Query<FilterOptions>>,
-    State(data): State<Arc<AppState>>,
-) -> impl IntoResponse {
+static APP_STATE: OnceCell<Arc<AppState>> = OnceCell::const_new();
+
+pub async fn get_all_user_controller(opts: Option<Query<FilterOptions>>) -> impl IntoResponse {
+    let app_state: Arc<AppState> = APP_STATE.get_or_init(init_app_state).await.clone();
+    let data: State<Arc<AppState>> = State(app_state);
+
     let Query(_opts) = opts.unwrap_or_default();
-    
-    let data = State(data);
+
     data.observable.notify_crud("GET", "All Users");
 
-    let res = get_all_user_service(data).await;
+    let res = get_all_user_service().await;
     match res {
         Ok(_) => {
             let json_response = serde_json::json!({
@@ -45,14 +47,12 @@ pub async fn get_all_user_controller(
     }
 }
 
-pub async fn get_user_by_id_controller(
-    Path(id): Path<i32>,
-    State(data): State<Arc<AppState>>,
-) -> impl IntoResponse {
-    let data = State(data);
+pub async fn get_user_by_id_controller(Path(id): Path<i32>) -> impl IntoResponse {
+    let app_state: Arc<AppState> = APP_STATE.get_or_init(init_app_state).await.clone();
+    let data: State<Arc<AppState>> = State(app_state);
     data.observable.notify_crud("GET", "User");
 
-    let res = get_user_by_id_service(data, id).await;
+    let res = get_user_by_id_service(id).await;
     match res {
         Ok(_) => {
             let json_response = serde_json::json!({
@@ -74,14 +74,12 @@ pub async fn get_user_by_id_controller(
     }
 }
 
-pub async fn create_user_controller(
-    State(data): State<Arc<AppState>>,
-    Json(body): Json<CreateUpdateUserSchema>,
-) -> impl IntoResponse {
-    let data = State(data);
+pub async fn create_user_controller(Json(body): Json<CreateUpdateUserSchema>) -> impl IntoResponse {
+    let app_state: Arc<AppState> = APP_STATE.get_or_init(init_app_state).await.clone();
+    let data: State<Arc<AppState>> = State(app_state);
     data.observable.notify_crud("POST", "User");
 
-    let res = create_user_service(data, axum::Json(body)).await;
+    let res = create_user_service(axum::Json(body)).await;
     match res {
         Ok(_) => {
             let json_response = serde_json::json!({
@@ -103,14 +101,14 @@ pub async fn create_user_controller(
 }
 
 pub async fn update_user_controller(
-    State(data): State<Arc<AppState>>,
     Path(id): Path<i32>,
     Json(body): Json<CreateUpdateUserSchema>,
 ) -> impl IntoResponse {
-    let data = State(data);
+    let app_state: Arc<AppState> = APP_STATE.get_or_init(init_app_state).await.clone();
+    let data: State<Arc<AppState>> = State(app_state);
     data.observable.notify_crud("PUT", "User");
 
-    let res = update_user_service(data, id, axum::Json(body)).await;
+    let res = update_user_service(id, axum::Json(body)).await;
     match res {
         Ok(_) => {
             let json_response = serde_json::json!({
@@ -131,14 +129,12 @@ pub async fn update_user_controller(
     }
 }
 
-pub async fn delete_user_by_id_controller(
-    Path(id): Path<i32>,
-    State(data): State<Arc<AppState>>,
-) -> impl IntoResponse {
-    let data = State(data);
+pub async fn delete_user_by_id_controller(Path(id): Path<i32>) -> impl IntoResponse {
+    let app_state: Arc<AppState> = APP_STATE.get_or_init(init_app_state).await.clone();
+    let data: State<Arc<AppState>> = State(app_state);
     data.observable.notify_crud("DEL", "User");
 
-    let res = delete_user_by_id_service(data, id).await;
+    let res = delete_user_by_id_service(id).await;
     match res {
         Ok(_) => {
             let json_response = serde_json::json!({
