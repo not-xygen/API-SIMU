@@ -1,17 +1,9 @@
 use crate::{
     model::schema::CreateUpdateUserSchema,
-    utils::{
-        singleton::{init_app_state, AppState},
-        validation_chain::ValidationChain,
-    },
+    utils::validation_chain::ValidationChain,
 };
-use std::sync::Arc;
-use tokio::sync::OnceCell;
-
-static APP_STATE: OnceCell<Arc<AppState>> = OnceCell::const_new();
 
 pub async fn create_validation(body: &CreateUpdateUserSchema) -> Result<(), String> {
-    let app_state: Arc<AppState> = APP_STATE.get_or_init(init_app_state).await.clone();
 
     let fields_values = [
         ("username", body.username.as_str()),
@@ -20,7 +12,7 @@ pub async fn create_validation(body: &CreateUpdateUserSchema) -> Result<(), Stri
         ("phone", body.phone.as_str()),
     ];
 
-    let mut validation_chain = ValidationChain::new(app_state); // Add 'mut' here
+    let mut validation_chain = ValidationChain::new(); // Add 'mut' here
     validation_chain
         .add_rule("username", "required", None)
         .add_rule("username", "min_length", Some("3"))
@@ -43,7 +35,6 @@ pub async fn create_validation(body: &CreateUpdateUserSchema) -> Result<(), Stri
 }
 
 pub async fn update_validation(body: &CreateUpdateUserSchema) -> Result<(), String> {
-    let app_state: Arc<AppState> = APP_STATE.get_or_init(init_app_state).await.clone();
 
     let fields_values = [
         ("username", body.username.as_str()),
@@ -52,7 +43,7 @@ pub async fn update_validation(body: &CreateUpdateUserSchema) -> Result<(), Stri
         ("phone", body.phone.as_str()),
     ];
 
-    let mut validation_chain = ValidationChain::new(app_state); // Add 'mut' here
+    let mut validation_chain = ValidationChain::new(); // Add 'mut' here
     validation_chain
         .add_rule("username", "required", None)
         .add_rule("username", "min_length", Some("3"))

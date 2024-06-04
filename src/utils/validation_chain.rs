@@ -1,18 +1,21 @@
 use regex::Regex;
+use tokio::sync::OnceCell;
 use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::utils::singleton::AppState;
 
+use super::singleton::init_app_state;
+
 pub struct ValidationChain {
-    data: Arc<AppState>,
     rules: HashMap<String, Vec<String>>,
 }
 
+static APP_STATE: OnceCell<Arc<AppState>> = OnceCell::const_new();
+
 impl ValidationChain {
-    pub fn new(data: Arc<AppState>) -> Self {
+    pub fn new() -> Self {
         ValidationChain {
-            data,
             rules: HashMap::new(),
         }
     }
@@ -36,6 +39,7 @@ impl ValidationChain {
     }
 
     pub async fn validate(&self, fields_values: &[(&str, &str)], table: &str) -> Result<(), String> {
+        let app_state: Arc<AppState> = APP_STATE.get_or_init(init_app_state).await.clone();
         for (field, value) in fields_values {
             let rules = match self.get_rules(field) {
                 Some(rules) => rules,
@@ -121,7 +125,7 @@ impl ValidationChain {
                             table, field
                         ))
                         .bind(value)
-                        .fetch_one(&self.data.db)
+                        .fetch_one(&app_state.db)
                         .await
                         .map_err(|_| format!("Failed to check uniqueness of {}", field))?;
 
